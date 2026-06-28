@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 STAGE1 = ROOT / "practice" / "stage1_minimal_agent"
 sys.path.insert(0, str(STAGE1))
 
-from minimal_agent import build_agent  # noqa: E402
+from minimal_agent import build_agent, serialize_steps  # noqa: E402
 
 
 class MinimalAgentTest(unittest.TestCase):
@@ -66,6 +66,15 @@ class MinimalAgentTest(unittest.TestCase):
         self.assertEqual(answer, "HELLO AGENT LOOP")
         self.assertIsNotNone(steps[0].action)
         self.assertEqual(steps[0].action.name, "uppercase")
+
+    def test_serialize_steps(self) -> None:
+        answer, steps = build_agent().run("转成大写：hello agent loop")
+        payload = serialize_steps(steps)
+
+        self.assertEqual(answer, "HELLO AGENT LOOP")
+        self.assertEqual(payload[0]["action"]["name"], "uppercase")
+        self.assertEqual(payload[0]["observation"]["content"], "HELLO AGENT LOOP")
+        self.assertIsNone(payload[-1]["action"])
 
 
 if __name__ == "__main__":

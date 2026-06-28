@@ -393,10 +393,33 @@ def print_trace(steps: list[AgentStep]) -> None:
             print(json.dumps({"ok": step.observation.ok, "content": step.observation.content}, ensure_ascii=False, indent=2))
 
 
+def serialize_steps(steps: list[AgentStep]) -> list[dict[str, Any]]:
+    items = []
+    for step in steps:
+        items.append(
+            {
+                "thought": step.thought,
+                "action": None
+                if step.action is None
+                else {
+                    "name": step.action.name,
+                    "arguments": step.action.arguments,
+                },
+                "observation": None
+                if step.observation is None
+                else {
+                    "ok": step.observation.ok,
+                    "content": step.observation.content,
+                },
+            }
+        )
+    return items
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run a minimal local agent loop.")
     parser.add_argument("prompt", help="User task for the agent.")
     parser.add_argument("--max-steps", type=int, default=4)
+    parser.add_argument("--trace-json", default="", help="Optional path to save trace as JSON.")
     args = parser.parse_args()
 
     agent = build_agent(max_steps=args.max_steps)
@@ -404,6 +427,12 @@ def main() -> None:
     print_trace(steps)
     print("\nFinal Answer")
     print(answer)
+    if args.trace_json:
+        trace_path = Path(args.trace_json)
+        trace_path.write_text(
+            json.dumps(serialize_steps(steps), ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
 
 
 if __name__ == "__main__":
