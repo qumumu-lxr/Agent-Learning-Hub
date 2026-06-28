@@ -8,3 +8,4 @@ RAG means retrieval augmented generation. A RAG assistant should retrieve eviden
 
 Memory is not one thing. Short-term memory keeps the current conversation coherent. Long-term memory stores durable facts or preferences. A trace is different from memory: trace is for debugging what happened during a run.
 
+Evaluation helps agents improve because fixed test cases reveal whether failures come from retrieval, tools, prompts, model behavior, or state management.
