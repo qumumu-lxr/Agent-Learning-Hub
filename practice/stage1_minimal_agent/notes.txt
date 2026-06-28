@@ -1,0 +1,3 @@
+Agent loop is the repeated cycle of observing the current state, deciding what to do next, executing an action, and observing the result.
+Reliable agents need clear tool schemas, bounded execution, traces, and explicit stop conditions.
+

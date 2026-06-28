@@ -1,0 +1,8 @@
+## Summary
+
+{{summary}}
+
+## Takeaway
+
+{{takeaway}}
+

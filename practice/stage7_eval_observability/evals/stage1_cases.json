@@ -1,0 +1,23 @@
+[
+  {"id": "calc-01", "task": "计算 1 + 1", "expected_contains": "2", "category": "tool_error"},
+  {"id": "calc-02", "task": "计算 23 * 7 + 10", "expected_contains": "171", "category": "tool_error"},
+  {"id": "calc-03", "task": "计算 8 / 2", "expected_contains": "4", "category": "tool_error"},
+  {"id": "calc-04", "task": "计算 9 % 4", "expected_contains": "1", "category": "tool_error"},
+  {"id": "calc-05", "task": "计算 2 ** 3", "expected_contains": "8", "category": "tool_error"},
+  {"id": "search-01", "task": "查一下 agent loop 是什么", "expected_contains": "observe -> think -> act -> observe", "category": "retrieval_miss"},
+  {"id": "search-02", "task": "查一下 tool calling", "expected_contains": "structured arguments", "category": "retrieval_miss"},
+  {"id": "search-03", "task": "查一下 trace", "expected_contains": "step-by-step", "category": "retrieval_miss"},
+  {"id": "read-01", "task": "请阅读 notes.txt 并总结", "expected_contains": "Agent loop", "category": "tool_error"},
+  {"id": "read-02", "task": "read notes.txt", "expected_contains": "Tool calling", "category": "tool_error"},
+  {"id": "count-01", "task": "统计字数：Agent loop 需要 tools", "expected_contains": "english_words", "category": "policy_error"},
+  {"id": "count-02", "task": "word count: tools trace memory", "expected_contains": "english_words", "category": "policy_error"},
+  {"id": "count-03", "task": "count words: agent harness", "expected_contains": "english_words", "category": "policy_error"},
+  {"id": "calc-06", "task": "计算 100 - 58", "expected_contains": "42", "category": "tool_error"},
+  {"id": "calc-07", "task": "计算 (3 + 4) * 5", "expected_contains": "35", "category": "tool_error"},
+  {"id": "calc-08", "task": "计算 18 // 5", "expected_contains": "3", "category": "tool_error"},
+  {"id": "search-04", "task": "agent loop", "expected_contains": "stop condition", "category": "retrieval_miss"},
+  {"id": "search-05", "task": "trace 是什么", "expected_contains": "debug", "category": "retrieval_miss"},
+  {"id": "count-04", "task": "统计字数：你好 agent", "expected_contains": "chinese_chars", "category": "policy_error"},
+  {"id": "read-03", "task": "阅读 notes.txt", "expected_contains": "Trace", "category": "tool_error"}
+]
+
