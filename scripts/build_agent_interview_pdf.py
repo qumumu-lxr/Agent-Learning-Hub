@@ -388,6 +388,24 @@ def build_document() -> None:
         ],
     )
 
+    add_heading(doc, "十、扩展面试题库", 1)
+    add_kv_table(
+        doc,
+        [
+            ("Agent loop", "问：如果工具失败，agent 应该直接停止还是重试？答：看失败类型。参数错误可修正重试，检索不足可改写 query，权限拒绝要人工确认，达到预算则停止。"),
+            ("WorkflowState", "问：WorkflowState 为什么不直接用一串 messages？答：messages 难以稳定承载结构化字段，WorkflowState 能让计划、工具结果、证据、反思和结论可追踪、可测试。"),
+            ("证据链", "问：证据链怎么设计？答：每个结论要绑定来源工具、原始结果、证据片段、置信信息和反思记录，报告只能引用状态中已有证据。"),
+            ("反思补查", "问：什么时候触发 reflection？答：工具失败、证据不足、证据冲突、结论置信度低、报告缺少关键字段或命中 bad case 规则时。"),
+            ("RAG", "问：RAG 召回不准怎么办？答：先看 query、chunk、top_k 和 citation；再做 query rewrite、embedding/hybrid search、rerank 或补充知识库。"),
+            ("Memory", "问：什么信息不应该进长期记忆？答：临时日志、未验证猜测、敏感信息、一次性中间状态；长期记忆应保存可复用且可信的归因经验。"),
+            ("Eval", "问：怎么证明 agent 变好了？答：用固定 eval 集比较成功率、失败分类、工具调用次数、延迟和人工复核通过率，而不是只展示 demo。"),
+            ("安全", "问：哪些动作需要人工确认？答：写文件、删除、发送消息、提交表单、发布内容、支付、修改线上配置，以及任何不可逆或影响外部系统的动作。"),
+            ("Claude Code", "问：Claude Code 辅助开发和项目 agent 有什么区别？答：Claude Code 是开发协作工具；项目 agent 是业务系统中的可执行归因链路，两者不要混为一谈。"),
+            ("工程落地", "问：上线后怎么排查线上 bad case？答：用 trace + WorkflowState 回放，定位失败来自计划、工具、检索、反思、记忆还是报告生成。"),
+        ],
+        widths=(1.35, 4.95),
+    )
+
     footer = doc.sections[0].footer.paragraphs[0]
     footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run = footer.add_run("AI Agent Interview Guide | Stage 1-8 | WorkflowState / Evidence Chain / Memory")
@@ -674,6 +692,22 @@ def build_pdf() -> None:
             body,
         ),
     ]
+
+    story += [p("十、扩展面试题库", h1)]
+    extra_rows = [
+        ["主题", "可能追问与答题抓手"],
+        ["Agent loop", "问：如果工具失败，agent 应该直接停止还是重试？答：看失败类型。参数错误可修正重试，检索不足可改写 query，权限拒绝要人工确认，达到预算则停止。"],
+        ["WorkflowState", "问：WorkflowState 为什么不直接用一串 messages？答：messages 难以稳定承载结构化字段，WorkflowState 能让计划、工具结果、证据、反思和结论可追踪、可测试。"],
+        ["证据链", "问：证据链怎么设计？答：每个结论要绑定来源工具、原始结果、证据片段、置信信息和反思记录，报告只能引用状态中已有证据。"],
+        ["反思补查", "问：什么时候触发 reflection？答：工具失败、证据不足、证据冲突、结论置信度低、报告缺少关键字段或命中 bad case 规则时。"],
+        ["RAG", "问：RAG 召回不准怎么办？答：先看 query、chunk、top_k 和 citation；再做 query rewrite、embedding/hybrid search、rerank 或补充知识库。"],
+        ["Memory", "问：什么信息不应该进长期记忆？答：临时日志、未验证猜测、敏感信息、一次性中间状态；长期记忆应保存可复用且可信的归因经验。"],
+        ["Eval", "问：怎么证明 agent 变好了？答：用固定 eval 集比较成功率、失败分类、工具调用次数、延迟和人工复核通过率，而不是只展示 demo。"],
+        ["安全", "问：哪些动作需要人工确认？答：写文件、删除、发送消息、提交表单、发布内容、支付、修改线上配置，以及任何不可逆或影响外部系统的动作。"],
+        ["Claude Code", "问：Claude Code 辅助开发和项目 agent 有什么区别？答：Claude Code 是开发协作工具；项目 agent 是业务系统中的可执行归因链路，两者不要混为一谈。"],
+        ["工程落地", "问：上线后怎么排查线上 bad case？答：用 trace + WorkflowState 回放，定位失败来自计划、工具、检索、反思、记忆还是报告生成。"],
+    ]
+    story += [make_table(extra_rows, [1.15, 5.35], font_name)]
 
     doc = SimpleDocTemplate(
         str(PDF_PATH),
