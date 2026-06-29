@@ -5,6 +5,7 @@ __pycache__/
 .DS_Store
 trace.json
 memory.json
+docs/**/rendered/
 
 # C extensions
 *.so
