@@ -18,6 +18,7 @@ from reportlab.lib.units import inch
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
+    KeepTogether,
     ListFlowable,
     ListItem,
     Paragraph,
@@ -39,6 +40,74 @@ BLUE = RGBColor(0x2E, 0x74, 0xB5)
 DARK_BLUE = RGBColor(0x1F, 0x4D, 0x78)
 INK = RGBColor(0x17, 0x24, 0x2B)
 MUTED = RGBColor(0x55, 0x55, 0x55)
+
+
+STAGE_DEEP_DIVE = [
+    {
+        "stage": "Stage 1: Minimal Agent Loop",
+        "goal": "掌握一个 agent 如何在状态中观察、选择工具、执行工具、读取 observation，并在满足条件时输出 final answer。",
+        "concepts": "ToolCall、ToolResult、AgentStep、ToolRegistry、tool schema、trace、max_steps、错误停止。",
+        "engineering": "最小代码通常包含 model/policy、工具注册表、工具函数、循环控制器和 trace 输出。面试要强调：结构化 ToolCall 比自然语言动作更稳定。",
+        "project": "你的“任务规划-工具执行-证据校验-反思补查-报告生成”就是一个业务版 agent loop；异常输入是 observe，归因计划是 think，工具调用是 act，工具结果和证据是 observation。",
+        "questions": "为什么需要 max_steps？工具参数错误怎么办？trace 能定位哪些问题？为什么不能让模型直接执行危险动作？",
+    },
+    {
+        "stage": "Stage 2: Tool Use, RAG, Memory",
+        "goal": "掌握资料型 agent 如何先检索证据，再生成 grounded answer，并把可复用信息写入 memory。",
+        "concepts": "chunk、tokenize、retrieval、top_k、citation、grounded answer、short-term memory、long-term memory、trace vs memory。",
+        "engineering": "RAG 链路要能说清：文档加载 -> chunk -> 向量/词频检索 -> 排序 -> 证据拼接 -> 引用输出。没有证据时要拒答或降低置信度。",
+        "project": "你的证据链和归因记忆属于 Stage 2 能力：工具结果和归因结论需要结构化沉淀，后续 bad case 和类似异常可复用这些记忆。",
+        "questions": "召回不准怎么办？chunk 太大/太小的影响？memory 里不该存什么？如何避免模型基于无证据内容生成结论？",
+    },
+    {
+        "stage": "Stage 3: Agent Harness",
+        "goal": "理解模型外面的工程运行层：工具、权限、状态、session、trace、预算、错误恢复都由 harness 管。",
+        "concepts": "ToolRegistry、PermissionGate、SessionStore、TraceEvent、budget、sandbox、retry、approval。",
+        "engineering": "Harness.run 的典型流程是：接收任务 -> 规划 tool call -> 查 registry -> 权限检查 -> 执行工具 -> 写 trace -> 更新状态 -> 判断停止。",
+        "project": "WorkflowState + 工具执行 + 证据校验 + 反思日志就是你的项目 harness 思维。它让模型输出不再是黑盒，而是可审计的执行链路。",
+        "questions": "哪些工具要人工确认？权限检查放在哪里？为什么状态不能只靠 prompt？如何用 session 复盘一次失败运行？",
+    },
+    {
+        "stage": "Stage 4: Multi-Agent Coordination",
+        "goal": "理解多 agent 的难点不是角色多，而是职责边界、输入输出 schema、supervisor 控制和停止条件。",
+        "concepts": "researcher/writer/reviewer/reviser、supervisor、graph、schema、循环控制、上下文隔离。",
+        "engineering": "多 agent 要避免无限争论和上下文膨胀。每个 agent 应只做一类任务，并输出可校验结构，由 supervisor 决定是否流转。",
+        "project": "你的链路可映射为 planner、tool executor、evidence checker、reflector、reporter 等模块协作；即使不是独立 agent，也体现了职责分离。",
+        "questions": "什么时候需要 multi-agent？怎么避免循环？reviewer 输出应该是什么结构？多 agent 比单 agent 多了哪些工程风险？",
+    },
+    {
+        "stage": "Stage 5: Skills, MCP, Protocols",
+        "goal": "掌握能力打包：Tool 是函数，Skill 是一套可复用流程知识，MCP/A2A/ACP 是不同层面的连接协议。",
+        "concepts": "Tool、Skill、SKILL.md、template、smoke test、MCP server、A2A、ACP。",
+        "engineering": "一个好 skill 应包含适用场景、步骤、脚本/模板和验收标准。MCP 更偏连接外部工具和数据源，不等于 skill。",
+        "project": "归因流程、报告模板、证据校验规则、bad case 分析流程都可以沉淀成 skill，让 agent 在类似任务中稳定复用。",
+        "questions": "Skill 和 prompt 有什么区别？Skill 和 MCP 有什么区别？如何证明一个 skill 真的提高成功率？",
+    },
+    {
+        "stage": "Stage 6: Browser and Computer-Use Agents",
+        "goal": "理解浏览器/计算机使用型 agent 的观察来源、动作日志、失败恢复和权限边界。",
+        "concepts": "DOM、screenshot、click/type/navigation、action log、loading/retry、human approval。",
+        "engineering": "DOM 适合结构化信息提取，截图适合视觉校验，动作日志适合审计。提交、支付、发布、删除等动作必须人工确认。",
+        "project": "如果归因工具涉及后台页面、监控平台或工单系统，浏览器 agent 需要记录动作、截图/DOM 证据，并对外部影响动作设置权限门。",
+        "questions": "DOM 和截图分别解决什么问题？页面加载失败怎么办？为什么不能让 agent 自动提交表单？",
+    },
+    {
+        "stage": "Stage 7: Evaluation, Observability, Safety",
+        "goal": "掌握如何证明 agent 可靠：固定 eval、失败分类、trace 观测、安全边界和成本/延迟指标。",
+        "concepts": "eval set、expected vs actual、failure category、observability、latency、cost、tool-call count、safety guardrail。",
+        "engineering": "Eval 表至少包含任务、期望、实际、是否通过、失败分类。Trace 用来定位失败来自 prompt、工具、检索、状态、模型还是生成。",
+        "project": "你的 bad case 分析正对应 Stage 7：用 WorkflowState 和 trace 回看一次归因失败，定位是计划错、工具错、证据不足、反思没触发还是报告生成过度概括。",
+        "questions": "怎么证明 agent 变好了？失败分类怎么设计？只靠人工看 demo 有什么问题？如何统计工具调用成本和延迟？",
+    },
+    {
+        "stage": "Stage 8: Ship a Real Agent",
+        "goal": "把 agent 从 demo 变成可交付系统：明确用户、任务、成功标准、部署形态、日志、权限、回归测试和 README。",
+        "concepts": "user/task/success criteria、CLI/Web/API、deployment、README、reproducibility、monitoring、rollback。",
+        "engineering": "交付不是模型能答一次，而是别人能复现、能监控、能回滚、能分析失败、能控制成本和权限。",
+        "project": "你的报告生成链路如果要上线，需要定义异常归因成功标准、人工复核机制、bad case 回流、记忆更新策略和权限边界。",
+        "questions": "上线后如何监控？如何回滚错误记忆？如何处理敏感数据？如何让新同事复现实验？",
+    },
+]
 
 
 def set_cell_shading(cell, fill: str) -> None:
@@ -252,7 +321,22 @@ def build_document() -> None:
     add_heading(doc, "一、Stage 1-8 总览", 1)
     add_stage_table(doc)
 
-    add_heading(doc, "二、核心概念速记", 1)
+    add_heading(doc, "二、Stage 1-8 深度详解", 1)
+    for item in STAGE_DEEP_DIVE:
+        add_heading(doc, item["stage"], 2)
+        add_kv_table(
+            doc,
+            [
+                ("学习目标", item["goal"]),
+                ("核心概念", item["concepts"]),
+                ("工程实现", item["engineering"]),
+                ("项目映射", item["project"]),
+                ("常见追问", item["questions"]),
+            ],
+            widths=(1.15, 5.15),
+        )
+
+    add_heading(doc, "三、核心概念速记", 1)
     add_kv_table(
         doc,
         [
@@ -265,7 +349,7 @@ def build_document() -> None:
         ],
     )
 
-    add_heading(doc, "三、把知识映射到你的简历项目", 1)
+    add_heading(doc, "四、把知识映射到你的简历项目", 1)
     add_body(
         doc,
         "简历原始表达：基于 Claude Code 辅助完成“任务规划-工具执行-证据校验-反思补查-报告生成”核心链路的 Agent loop 开发，负责上下文管理、记忆保存模块，参与设计 WorkflowState，统一承载异常输入、归因计划、工具结果和反思决策等关键上下文；同时结构化记录工具结果、归因证据链、反思日志和归因结论，为异常结论复核、bad case 分析、归因记忆沉淀提供基础。",
@@ -293,7 +377,7 @@ def build_document() -> None:
         ],
     )
 
-    add_heading(doc, "四、面试高频问答", 1)
+    add_heading(doc, "五、面试高频问答", 1)
     qa = [
         (
             "Q1：你们的 Agent loop 和普通 workflow 有什么区别？",
@@ -324,7 +408,7 @@ def build_document() -> None:
         add_heading(doc, q, 2)
         add_body(doc, a)
 
-    add_heading(doc, "五、一分钟项目讲述模板", 1)
+    add_heading(doc, "六、一分钟项目讲述模板", 1)
     add_callout(
         doc,
         "可直接背诵版本",
@@ -333,7 +417,7 @@ def build_document() -> None:
         "参与设计 WorkflowState，把异常输入、计划、工具结果、证据链、反思日志和结论统一承载。这样一方面保证每一步可追踪，另一方面也为结论复核、bad case 分析和归因记忆沉淀提供基础。",
     )
 
-    add_heading(doc, "六、三分钟深入讲述模板", 1)
+    add_heading(doc, "七、三分钟深入讲述模板", 1)
     add_numbered(
         doc,
         [
@@ -346,7 +430,7 @@ def build_document() -> None:
         ],
     )
 
-    add_heading(doc, "七、Stage 1-8 面试追问速答", 1)
+    add_heading(doc, "八、Stage 1-8 面试追问速答", 1)
     add_kv_table(
         doc,
         [
@@ -361,7 +445,7 @@ def build_document() -> None:
         ],
     )
 
-    add_heading(doc, "八、你要重点记忆的关键词", 1)
+    add_heading(doc, "九、你要重点记忆的关键词", 1)
     add_bullets(
         doc,
         [
@@ -375,7 +459,7 @@ def build_document() -> None:
         ],
     )
 
-    add_heading(doc, "九、面试自检清单", 1)
+    add_heading(doc, "十、面试自检清单", 1)
     add_bullets(
         doc,
         [
@@ -388,7 +472,7 @@ def build_document() -> None:
         ],
     )
 
-    add_heading(doc, "十、扩展面试题库", 1)
+    add_heading(doc, "十一、扩展面试题库", 1)
     add_kv_table(
         doc,
         [
@@ -566,7 +650,27 @@ def build_pdf() -> None:
     ]
     story += [make_table(stage_rows, [1.25, 4.05, 1.2], font_name), Spacer(1, 8)]
 
-    story += [p("Stage 1-8 拆解记忆卡", h2)]
+    story += [p("二、Stage 1-8 深度详解", h1)]
+    for item in STAGE_DEEP_DIVE:
+        deep_rows = [
+            ["维度", "内容"],
+            ["学习目标", item["goal"]],
+            ["核心概念", item["concepts"]],
+            ["工程实现", item["engineering"]],
+            ["项目映射", item["project"]],
+            ["常见追问", item["questions"]],
+        ]
+        story += [
+            KeepTogether(
+                [
+                    p(item["stage"], h2),
+                    make_table(deep_rows, [1.05, 5.45], font_name),
+                    Spacer(1, 6),
+                ]
+            )
+        ]
+
+    story += [p("三、Stage 1-8 拆解记忆卡", h1)]
     stage_card_rows = [
         ["Stage", "你要会讲什么", "怎么映射到你的项目"],
         ["1 Loop", "Agent 不是一次生成，而是带状态地观察、决策、行动、再观察。", "你的链路从异常输入开始，经计划、工具、证据、反思、报告循环推进。"],
@@ -580,7 +684,7 @@ def build_pdf() -> None:
     ]
     story += [make_table(stage_card_rows, [0.9, 2.8, 2.8], font_name), Spacer(1, 8)]
 
-    story += [p("二、核心概念速记", h1)]
+    story += [p("四、核心概念速记", h1)]
     concept_rows = [
         ["概念", "面试表达"],
         ["Agent loop", "带状态地观察、结构化决策、安全行动、记录 trace，并在满足条件时停止。核心不是循环，而是 observation-driven decision。"],
@@ -592,7 +696,7 @@ def build_pdf() -> None:
     ]
     story += [make_table(concept_rows, [1.45, 5.05], font_name), Spacer(1, 8)]
 
-    story += [p("三、把知识映射到你的简历项目", h1)]
+    story += [p("五、把知识映射到你的简历项目", h1)]
     story += [
         p(
             "简历原始表达：基于 Claude Code 辅助完成“任务规划-工具执行-证据校验-反思补查-报告生成”核心链路的 Agent loop 开发，负责上下文管理、记忆保存模块，参与设计 WorkflowState，统一承载异常输入、归因计划、工具结果和反思决策等关键上下文；同时结构化记录工具结果、归因证据链、反思日志和归因结论，为异常结论复核、bad case 分析、归因记忆沉淀提供基础。",
@@ -619,7 +723,7 @@ def build_pdf() -> None:
     ]
     story += [p("WorkflowState 可以这样讲", h2), make_table(state_rows, [1.35, 5.15], font_name), Spacer(1, 8)]
 
-    story += [p("四、面试高频问答", h1)]
+    story += [p("六、面试高频问答", h1)]
     qa = [
         ("Q1：你们的 Agent loop 和普通 workflow 有什么区别？", "普通 workflow 路径固定；我们的链路虽然有主流程，但是否补查、补查什么、是否接受结论，会根据工具 observation 和证据充分性动态决策。因此核心是 observation-driven decision。"),
         ("Q2：你负责的上下文管理具体做了什么？", "我把异常输入、归因计划、工具结果、证据链和反思决策统一到 WorkflowState，保证每一步有结构化输入输出。这样后续报告生成、结论复核和 bad case 分析都能从状态中追溯。"),
@@ -632,12 +736,12 @@ def build_pdf() -> None:
         story += [p(question, h2), p(answer, body)]
 
     story += [
-        p("五、一分钟项目讲述模板", h1),
+        p("七、一分钟项目讲述模板", h1),
         p(
             "我做的是一个面向异常归因的 Agent 链路，不是简单让大模型输出结论。系统会先把异常输入转成归因计划，再调用工具获取事实证据，然后校验证据是否支持结论；如果证据不足或有冲突，会进入反思补查，最后生成带证据链的报告。我的重点工作是上下文管理和记忆保存，参与设计 WorkflowState，把异常输入、计划、工具结果、证据链、反思日志和结论统一承载。这样一方面保证每一步可追踪，另一方面也为结论复核、bad case 分析和归因记忆沉淀提供基础。",
             callout,
         ),
-        p("六、三分钟深入讲述模板", h1),
+        p("八、三分钟深入讲述模板", h1),
         number_list(
             [
                 "背景：异常归因任务天然不确定，不能只靠一次模型生成，需要根据工具结果动态补查和修正。",
@@ -651,7 +755,7 @@ def build_pdf() -> None:
         ),
     ]
 
-    story += [p("七、Stage 1-8 面试追问速答", h1)]
+    story += [p("九、Stage 1-8 面试追问速答", h1)]
     speed_rows = [
         ["Stage", "速答"],
         ["Stage 1", "Agent loop 的关键是 observation-driven decision；trace 用来定位 thought/action/observation 哪一步出错。"],
@@ -666,7 +770,7 @@ def build_pdf() -> None:
     story += [make_table(speed_rows, [1.1, 5.4], font_name)]
 
     story += [
-        p("八、你要重点记忆的关键词", h1),
+        p("十、你要重点记忆的关键词", h1),
         bullet_list(
             [
                 "Agent loop：observe -> think -> act -> observe，关键是根据 observation 决定下一步。",
@@ -679,7 +783,7 @@ def build_pdf() -> None:
             ],
             body,
         ),
-        p("九、面试自检清单", h1),
+        p("十一、面试自检清单", h1),
         bullet_list(
             [
                 "能否用 30 秒讲清楚项目不是简单 prompt，而是 Agent loop？",
@@ -693,7 +797,7 @@ def build_pdf() -> None:
         ),
     ]
 
-    story += [p("十、扩展面试题库", h1)]
+    story += [p("十二、扩展面试题库", h1)]
     extra_rows = [
         ["主题", "可能追问与答题抓手"],
         ["Agent loop", "问：如果工具失败，agent 应该直接停止还是重试？答：看失败类型。参数错误可修正重试，检索不足可改写 query，权限拒绝要人工确认，达到预算则停止。"],
