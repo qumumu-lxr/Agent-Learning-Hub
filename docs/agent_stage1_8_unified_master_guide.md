@@ -1,49 +1,607 @@
 # Agent Stage 1-8 统一学习与项目面试总手册
 
-这份总手册由两份原始材料汇聚而成，并保留原文件不变：
+这份总手册把两份原始资料进一步融合成一个更适合阅读、复习和面试前查漏补缺的版本。原文件仍然保留不动：
 
-- `docs/stage1_8_code_learning_playbook.md`：Stage 1-8 代码组件精读与项目映射手册。
-- `docs/readme_todo_full_answers_and_project_interview.md`：README 学习点逐项详解与项目面试手册。
+- `docs/stage1_8_code_learning_playbook.md`：偏代码组件精读，适合配合编辑器看本地实现。
+- `docs/readme_todo_full_answers_and_project_interview.md`：偏 README checklist 逐项解释和项目面试回答。
 
-## 使用方式
+为了兼顾易读性和完整性，本文采用两层结构：
 
-这份文件的目标是把两份资料集中到一个入口里，方便你面试前系统复习。由于你的要求是“不缺失任何内容”，本文采用“融合导读 + 两份原文完整并入”的结构：
+1. **主手册**：去重融合后的学习路线、Stage 0-8 速查、关键组件索引、项目落地总图、面试回答框架。
+2. **完整附录**：用折叠块完整保留两份原始文档正文，保证不缺失任何内容。
 
-1. 先读“融合导读”，建立整体地图。
-2. 再读“第一部分：代码组件精读”，理解 Stage 1-8 的核心类、函数和关键代码。
-3. 再读“第二部分：README 学习点与面试回答”，补齐 README checklist、面试问题和项目故事。
-4. 最后重点复盘两个部分中关于【异常巡检与归因 Agent：站点交付异常的证据链诊断与报告生成】的内容。
+## 0. 你应该怎么读这份文档
 
-## 融合导读
+如果你现在目标是面试，推荐阅读顺序是：
 
-两份原始文档有重合，但侧重点不同：
+1. 先读 `1. 一页总图`，建立全局框架。
+2. 再读 `2. Stage 0-8 融合学习路线`，把 README checklist 和本地代码对应起来。
+3. 再读 `3. 关键组件索引`，重点记住 `ToolCall`、`ToolResult`、`ToolRegistry`、`PermissionGate`、`WorkflowState`、`EvidenceItem`、`ReflectionDecision`。
+4. 再读 `4. 应用到你的项目`，把技术点转换成【异常巡检与归因 Agent】项目故事。
+5. 最后按 `5. 面试追问地图` 练习问答。
+6. 如果某个点不懂，再展开附录看原文细节。
 
-| 维度 | 代码组件精读手册 | README/面试手册 | 统一理解 |
+如果你现在目标是代码学习，推荐阅读顺序是：
+
+1. 打开本地 `practice/` 对应 stage 的代码。
+2. 对照 `2. Stage 0-8 融合学习路线` 的组件表。
+3. 看 `3. 关键组件索引` 里的核心作用和面试关键词。
+4. 展开附录 A，看完整代码组件精读。
+
+## 1. 一页总图
+
+Agent 学习主线可以压缩成一句话：
+
+> 先判断任务是否真的需要 Agent，再用最小 loop 跑通工具调用，然后加入 RAG/Memory、Harness、Multi-Agent 协调、Skills、Browser 能力、Eval/Observability，最后打包成可交付系统。
+
+你的项目可以压缩成一句话：
+
+> 异常巡检与归因 Agent 是一个面向站点交付异常的长路径任务助理，通过 Agent Harness 串起任务规划、工具调用、证据校验、Self-Reflection 补查、报告生成，并用 WorkflowState 承载异常输入、计划、工具结果、证据链、反思决策和最终结论。
+
+### 1.1 Stage 与项目能力映射
+
+| Stage | README 学习点 | 本地代码入口 | 项目映射 |
 | --- | --- | --- | --- |
-| Stage 1-8 | 从本地代码组件出发 | 从 README checklist 出发 | 一个讲“代码怎么实现”，一个讲“面试怎么回答” |
-| Agent Loop | 解释 `ToolCall`、`ToolResult`、`Agent.run()` | 解释为什么业务需要 Agent 而不是 workflow | 用代码证明你理解闭环，用项目说明业务价值 |
-| RAG / Memory | 解释 `Chunk`、`TermRetriever`、`MemoryStore` | 解释证据、引用、memory 与 trace 区别 | 证据链和记忆沉淀是项目可信度基础 |
-| Harness | 解释 `ToolRegistry`、`PermissionGate`、`SessionStore`、`Harness.run()` | 解释 harness engineering 的面试表达 | Harness 是你的项目核心工程抓手 |
-| Multi-Agent | 解释 researcher/writer/reviewer/reviser | 解释 planner/executor/reviewer/router 职责 | 项目可先做单 Agent + 多模块职责分离 |
-| Skills | 解释 `Skill`、`load_skill()`、`run_skill()` | 解释 Skill/Tool/MCP 区别 | 异常归因流程可沉淀为可复用 skill |
-| Browser Agent | 解释 DOM 解析和 action log | 解释页面工具安全边界 | 如果读取交付看板，需要 DOM/截图/动作日志 |
-| Eval | 解释 `EvalCase`、`EvalResult`、`summarize()` | 解释评测指标和 bad case | 用 eval 证明版本迭代没有退化 |
-| Ship | 解释 `ShippedAgentResult`、CLI、trace | 解释上线标准和业务成果 | 可交付 Agent 必须可复现、可观测、可复盘 |
+| Stage 0 | 区分 chatbot / workflow / agent / multi-agent | `practice/stage0_agent_mindset/agent_mindset.py` | 判断异常归因为什么需要 Agent，而不是固定 workflow |
+| Stage 1 | Minimal Agent Loop、结构化 JSON、tool call、错误处理 | `practice/stage1_minimal_agent/minimal_agent.py` | 搭建任务规划 -> 工具调用 -> observation -> 结论的最小闭环 |
+| Stage 2 | Tool Use、RAG、Memory、引用证据 | `practice/stage2_rag_memory/rag_memory.py` | 把工具结果转成证据链，区分 trace、bad case、长期归因记忆 |
+| Stage 3 | Agent Harness、工具、权限、session、trace | `practice/stage3_harness/harness_demo.py` | 你的核心工作：Agent Harness + WorkflowState + 权限边界 |
+| Stage 4 | Multi-Agent 是协调问题 | `practice/stage4_multi_agent/multi_agent_pipeline.py` | planner、executor、evidence checker、reflector、reporter 职责分离 |
+| Stage 5 | Skills / MCP / A2A / ACP / capability packaging | `practice/stage5_skills_protocols/skill_runner.py` | 把异常归因流程、报告模板、证据校验规则沉淀成 skill |
+| Stage 6 | Browser / Computer-use agents | `practice/stage6_browser_agent/browser_info_agent.py` | 如果读取交付看板，要记录 DOM、截图、动作日志和权限 |
+| Stage 7 | Evaluation、Observability、Safety | `practice/stage7_eval_observability/eval_runner.py` | 用 eval、trace、failure category、bad case 回归证明 Agent 可靠 |
+| Stage 8 | Ship a Real Agent | `practice/stage8_ship_real_agent/personal_research_agent.py` | 上线交付：明确用户、任务、成功标准、trace、权限、README、回归测试 |
 
-## 面试复习主线
+### 1.2 你的项目主链路
 
-你可以按下面顺序组织回答：
+```text
+异常输入
+  -> Planner 任务规划
+  -> Tool Executor 工具调用
+  -> Evidence Checker 证据校验
+  -> Reflector / Self-Reflection 补查
+  -> Reporter 报告生成
+  -> Trace / Bad Case / Memory 沉淀
+```
 
-1. 先说业务背景：站点交付异常依赖人工，根因链路不清晰。
-2. 再说为什么是 Agent：下一步排查依赖工具 observation，不是固定 workflow。
-3. 再说核心链路：任务规划、工具调用、证据校验、Self-Reflection 补查、报告生成。
-4. 再说你的重点：Agent Harness 和 WorkflowState。
-5. 再说可信机制：证据链、trace、memory、bad case、eval。
-6. 最后说业务结果：两个重点项目、两个版本上线、试点交付成本降低 37.5%。
+对应 Agent loop：
 
----
+```text
+observe abnormal input
+  -> think / plan attribution steps
+  -> act / call tools
+  -> observe tool results
+  -> validate evidence
+  -> reflect if missing or conflicting
+  -> generate final report
+```
 
-# 第一部分：Stage 1-8 代码组件精读与项目映射
+## 2. Stage 0-8 融合学习路线
+
+### Stage 0: Understand What An Agent Is
+
+**核心问题**：这个任务到底该用 script、workflow、chatbot、agent，还是 multi-agent？
+
+| 组件/概念 | 你要掌握什么 | 项目表达 |
+| --- | --- | --- |
+| `AGENT_KEYWORDS` | 判断任务是否有多轮、规划、证据、工具、反馈 | 异常归因需要根据工具结果动态补查 |
+| `WORKFLOW_KEYWORDS` | 判断流程是否固定 | 固定审批流不需要 Agent |
+| `SCRIPT_KEYWORDS` | 判断是否确定性处理 | 延期天数、成本比例可用 script 算 |
+| `CHATBOT_KEYWORDS` | 判断是否只是解释/润色 | 单纯解释概念不需要工具 loop |
+| `RISK_KEYWORDS` | 判断是否有高风险动作 | 提交报告、关闭工单、通知负责人需人工确认 |
+| `AgentDecision` | 结构化输出推荐模式、不确定性、人审需求 | 项目立项时说明为什么异常归因需要 Agent |
+
+**面试一句话**：
+
+> 我不会默认把所有任务都做成 Agent。只有当任务路径不确定、下一步依赖 observation、需要工具调用和权限边界时，才适合 Agent。站点交付异常归因正是这种场景。
+
+### Stage 1: Build A Minimal Agent Loop
+
+**核心问题**：Agent 如何完成 observe -> think -> act -> observe 的最小闭环？
+
+| 组件 | 作用 | 关键代码/字段 | 项目映射 |
+| --- | --- | --- | --- |
+| `ToolCall` | 结构化动作 | `name`, `arguments` | 查询计划、物料、工单、施工日志的工具调用 |
+| `ToolResult` | 工具 observation | `ok`, `content` | 工具返回的证据摘要或失败原因 |
+| `AgentStep` | 最小 trace | `thought`, `action`, `observation` | 记录为什么查某个工具、返回了什么 |
+| `ToolSpec` | 工具 schema | `name`, `description`, `parameters`, `fn` | 让模型/策略知道工具用途和参数 |
+| `ToolRegistry` | 工具注册和执行入口 | `register()`, `call()`, `schemas()` | 工具白名单，统一执行和异常捕获 |
+| `RuleBasedModel` | 模拟模型决策 | `next_action()` | 真实项目里可替换成 LLM planner |
+| `Agent.run()` | 最小 loop | `max_steps`, `steps`, `observation` | 后续升级为业务 Harness.run |
+| `serialize_steps()` | trace 序列化 | action/observation JSON | 保存执行链路用于复盘 |
+
+**关键理解**：
+
+- `ToolCall` 解决“模型要做什么动作”的结构化表达。
+- `ToolResult` 解决“工具返回什么 observation”。
+- `AgentStep` 解决“为什么这么做、做了什么、结果是什么”。
+- `max_steps` 是最小预算控制，防止无限循环。
+- 工具失败也要返回 `ToolResult(ok=False)`，不能让系统静默失败。
+
+**面试一句话**：
+
+> Stage 1 的核心是把模型输出从自然语言变成结构化 ToolCall，再通过 ToolRegistry 执行工具，把 ToolResult 作为 observation 回到下一轮，并用 AgentStep 形成可审计 trace。
+
+### Stage 2: Learn Tool Use, RAG, And Memory
+
+**核心问题**：Agent 如何基于证据回答？哪些信息应该保存成 memory？
+
+| 组件 | 作用 | 关键点 | 项目映射 |
+| --- | --- | --- | --- |
+| `Chunk` | 文档证据块 | `source`, `chunk_id`, `citation` | 业务证据也要有 source/ref |
+| `RetrievedChunk` | 检索结果 | `chunk`, `score` | 每条候选证据要有相关度或置信度 |
+| `tokenize()` | 分词 | 英文 token + 中文单字 | 可替换成 embedding / hybrid search |
+| `chunk_text()` | 文档切块 | 控制 chunk 大小 | 证据粒度要平衡完整性和精确性 |
+| `TermRetriever` | 检索器 | vectorize + cosine | 查询历史案例或知识库 |
+| `MemoryStore` | 跨运行记忆 | JSON 持久化 | 保存复核后的归因模式和 bad case |
+| `ResearchAssistant.answer()` | RAG 主流程 | 无证据拒答，有证据带引用 | 报告必须由 evidence_chain 支撑 |
+
+**关键理解**：
+
+- RAG 不是“把文档塞进 prompt”，而是 `chunk -> retrieve -> grounded answer -> citation`。
+- Citation 的意义是让结论可追溯。
+- Trace 是单次运行记录，memory 是跨任务复用经验。
+- 未验证猜测不应该进入长期 memory。
+
+**面试一句话**：
+
+> 异常归因里的证据链就是业务版 RAG：每个工具结果都要转成可引用 EvidenceItem，最终报告只能引用已有证据；经过复核的归因模式才进入长期记忆。
+
+### Stage 3: Study One Modern Agent Harness
+
+**核心问题**：怎样把最小 loop 工程化成可控、可观测、可恢复的运行时？
+
+| 组件 | 作用 | 关键点 | 项目映射 |
+| --- | --- | --- | --- |
+| `TraceEvent` | 工程化 trace 事件 | `step`, `event`, `payload`, `timestamp` | 记录 plan/tool/evidence/reflection/report 事件 |
+| `ToolSpec` | 工具定义 | 新增 `risky` 字段 | 区分只读工具和高风险写入工具 |
+| `ToolRegistry` | 管 agent 可以调用哪些工具 | `register()`, `get()`, `names()` | 工具白名单和统一分发 |
+| `PermissionGate` | 判断工具是否需要人工批准 | safe auto approve, risky reject | 提交结论、关闭工单、通知负责人要确认 |
+| `SessionStore` | 把 trace 写入文件 | 每 append 一次持久化 | 支持任务回放和故障诊断 |
+| `DemoPolicy` | 模拟模型/策略，规划 tool call | `plan()` 返回 ToolCall 列表 | 真实项目替换成归因 Planner |
+| `Harness.run()` | 串起任务、计划、权限、执行、观察 | 核心调度逻辑 | 你的 Agent Harness 主链路 |
+
+**Harness.run 关键流程**：
+
+```text
+task_received
+  -> policy.plan
+  -> tool_call_planned
+  -> registry.get
+  -> permission_checked
+  -> tool execution
+  -> tool_observed
+  -> return result
+```
+
+**面试一句话**：
+
+> Harness 是模型外的工程运行层。模型可以提出动作，但工具是否存在、是否允许执行、怎么记录 trace、失败怎么处理，都应该由 Harness 管。
+
+### Stage 4: Multi-Agent Is Coordination, Not Magic
+
+**核心问题**：多 agent 的重点不是角色多，而是职责边界和 supervisor 控制。
+
+| 组件 | 作用 | 项目映射 |
+| --- | --- | --- |
+| `ResearchBrief` | researcher 输出事实 | 工具结果或证据候选 |
+| `Draft` | writer/reviser 输出草稿 | 初版归因报告 |
+| `Review` | reviewer 输出质量检查 | 证据是否充分、结论是否绑定证据 |
+| `ResearcherAgent` | 收集事实 | Tool Executor / Evidence Collector |
+| `WriterAgent` | 写初稿 | Reporter |
+| `ReviewerAgent` | 检查输出质量 | Evidence Checker / Reflector |
+| `ReviserAgent` | 根据 review 修订 | 补充报告或触发补查 |
+| `Supervisor` | 编排顺序和 trace | Attribution Harness / Workflow Orchestrator |
+
+**关键理解**：
+
+- 每个 agent 或模块都应该有清晰输入输出 schema。
+- Reviewer 应输出结构化 issues，而不是自由聊天。
+- Supervisor 控制流转、停止条件和 trace。
+- 项目不一定要真的拆成多个 LLM agent，可以先做单 Agent + 多模块职责分离。
+
+**面试一句话**：
+
+> 我把 multi-agent 理解为协调问题。异常归因项目里，planner、executor、evidence checker、reflector、reporter 可以先作为模块协作，由 Harness/Supervisor 统一调度。
+
+### Stage 5: Learn Skills, Protocols, And Capability Packaging
+
+**核心问题**：如何把一类任务的方法、模板、验收标准沉淀成可复用能力？
+
+| 组件/概念 | 作用 | 项目映射 |
+| --- | --- | --- |
+| `Skill` | 封装 name、description、checks、template | 异常归因 skill |
+| `SkillRun` | 保存 skill 输出和验收结果 | 报告生成后的质量检查 |
+| `load_skill()` | 读取 `SKILL.md` 和模板 | 加载归因流程和报告模板 |
+| `run_skill()` | 填充模板并跑 checks | 生成结构化归因报告 |
+| Tool | 可调用函数 | 查询计划、工单、物料 |
+| Skill | 可复用流程知识 | 归因步骤、证据规则、报告模板 |
+| MCP | 外部工具/数据源协议 | 标准化接入项目管理系统 |
+| A2A | agent 间协作协议 | 归因 Agent 与报告 Agent 协作 |
+| ACP | 宿主应用通信协议 | 平台把任务交给 Agent 并接收结果 |
+
+**面试一句话**：
+
+> Tool 是动作接口，Skill 是可复用流程知识。我的项目中，查询计划是 tool；异常归因流程、证据校验规则和报告模板可以沉淀成 skill。
+
+### Stage 6: Browser And Computer-Use Agents
+
+**核心问题**：当信息来自页面时，Agent 如何观察、提取、记录和保证安全？
+
+| 组件 | 作用 | 项目映射 |
+| --- | --- | --- |
+| `Link` | 页面链接结构 | 交付看板中的可点击记录 |
+| `PageSummary` | 页面摘要结果 | title/headings/links/text/action_log |
+| `PageParser` | HTML 解析器 | DOM 提取标题、链接、正文 |
+| `LocalPageAgent.inspect()` | 页面观察主流程 | 打开页面、读取 HTML、解析 DOM、记录动作 |
+| action log | 动作日志 | open/read/parse/click/screenshot |
+
+**关键理解**：
+
+- API tool 通常 schema 稳定，browser agent 面对页面变化和加载失败。
+- DOM 适合结构化提取，截图适合视觉校验。
+- 提交、发布、删除、关闭工单等外部影响动作必须人工确认。
+
+**面试一句话**：
+
+> 如果归因证据来自交付看板，Browser Agent 需要记录 DOM、截图、筛选条件和动作日志。读取可以自动，提交或修改必须人工确认。
+
+### Stage 7: Evaluation, Observability, And Safety
+
+**核心问题**：如何证明 Agent 稳定变好，而不是只演示一次？
+
+| 组件 | 作用 | 项目映射 |
+| --- | --- | --- |
+| `EvalCase` | 固定测试任务 | 异常输入、期望根因、失败分类 |
+| `EvalResult` | 评测结果 | actual、passed、failure_category、trace |
+| `load_cases()` | 加载 eval 数据 | 加载 bad case / regression cases |
+| `run_eval()` | 批量执行评测 | 固定任务集回归测试 |
+| `serialize_trace()` | 保存执行轨迹 | 定位失败来自 plan/tool/evidence/reflection/report |
+| `summarize()` | 汇总指标 | success_rate、failures by category |
+
+**项目指标**：
+
+| 指标 | 含义 |
+| --- | --- |
+| root_cause_accuracy | 主因是否命中 |
+| evidence_coverage | 证据是否足够支撑结论 |
+| citation_validity | 报告引用是否都存在于 evidence_chain |
+| reflection_trigger_rate | 该补查时是否补查 |
+| tool_call_count | 工具调用成本 |
+| latency | 任务耗时 |
+| human_review_rate | 需要人工复核比例 |
+| bad_case_regression | 历史 bad case 是否复发 |
+
+**面试一句话**：
+
+> 我不会只用 demo 证明 Agent 有效，而是用固定 eval 集、trace、失败分类、工具调用次数和 bad case 回归判断版本是否真的变好。
+
+### Stage 8: Ship A Real Agent
+
+**核心问题**：什么叫真正交付一个 Agent？
+
+| 组件 | 作用 | 项目映射 |
+| --- | --- | --- |
+| `ShippedAgentResult` | 最终输出结构 | report、conclusion、evidence_chain、trace |
+| `PersonalResearchAgent` | 可交付 agent 封装 | AttributionAgent / AttributionHarness |
+| `run()` | 业务入口 | abnormal input -> plan -> tools -> report |
+| `main()` | CLI 入口 | 可运行、可配置、可保存 trace |
+| README | 使用说明 | 用户、任务、成功标准、权限、限制、eval |
+
+**交付标准**：
+
+- 明确用户。
+- 明确任务。
+- 明确成功标准。
+- 有 trace。
+- 有错误处理和超时。
+- 有权限边界。
+- 有 eval。
+- 有 README。
+- 能被别人复现。
+
+**面试一句话**：
+
+> Ship 阶段关注的不只是模型能答一次，而是别人能否运行、复现、观察 trace、定位失败、控制权限、持续迭代。
+
+## 3. 关键组件索引
+
+| 组件 | 来源 Stage | 一句话定义 | 你的项目里叫什么 |
+| --- | --- | --- | --- |
+| `ToolCall` | Stage 1 / 3 | Agent 计划执行的结构化动作 | 归因工具调用计划 |
+| `ToolResult` | Stage 1 / 3 | 工具返回的 observation | 工具结果记录 |
+| `AgentStep` | Stage 1 | thought/action/observation 三元组 | 执行步骤 trace |
+| `ToolSpec` | Stage 1 / 3 | 工具说明书 | 业务工具 schema |
+| `ToolRegistry` | Stage 1 / 3 | 工具白名单和分发入口 | 归因工具注册表 |
+| `PermissionGate` | Stage 3 | 权限和风险控制 | 人工确认机制 |
+| `SessionStore` | Stage 3 | 保存一次运行 trace | session / trace store |
+| `DemoPolicy` | Stage 3 | 模拟模型规划动作 | Attribution Planner |
+| `Harness.run()` | Stage 3 | Agent 运行时主干 | Attribution Harness 主链路 |
+| `Chunk` | Stage 2 | 可引用文档块 | EvidenceItem 的来源思想 |
+| `TermRetriever` | Stage 2 | 检索证据 | 历史案例/知识库检索 |
+| `MemoryStore` | Stage 2 | 跨运行记忆 | 归因记忆库 |
+| `ReviewerAgent` | Stage 4 | 结构化质量检查 | Evidence Checker / Reflector |
+| `Supervisor` | Stage 4 | 多模块编排者 | Workflow Orchestrator |
+| `Skill` | Stage 5 | 可复用流程知识包 | 异常归因 skill |
+| `PageParser` | Stage 6 | 页面 DOM 解析器 | 看板证据提取器 |
+| `EvalCase` | Stage 7 | 固定评测任务 | 异常归因测试样本 |
+| `EvalResult` | Stage 7 | 评测结果与 trace | bad case 分析记录 |
+| `ShippedAgentResult` | Stage 8 | 可交付输出结构 | AttributionAgentResult |
+| `WorkflowState` | 项目综合 | 长任务上下文容器 | 你的项目核心状态机制 |
+| `EvidenceItem` | 项目综合 | 可追溯证据单元 | 证据链基础结构 |
+| `ReflectionDecision` | 项目综合 | 补查/复核决策 | Self-Reflection 输出 |
+
+## 4. 应用到你的项目：异常巡检与归因 Agent
+
+项目名称：
+
+> 异常巡检与归因 Agent：站点交付异常的证据链诊断与报告生成
+
+### 4.1 项目背景
+
+站点交付过程涉及计划、物料、施工、审批、质量、工单、成本等多个系统。传统方式下，异常发现依赖人工巡检，根因排查依赖人工跨系统查证，结论链路不清晰，报告难以复核，历史 bad case 难以沉淀。
+
+Agent 的价值在于：
+
+- 自动发现或接收交付偏差。
+- 根据异常类型规划排查路径。
+- 调用多个工具收集证据。
+- 判断证据是否充分或冲突。
+- 不足时进行 Self-Reflection 补查。
+- 输出带证据链的归因报告。
+- 沉淀 trace、bad case 和归因记忆。
+
+### 4.2 为什么不是普通 workflow
+
+Workflow 的路径通常固定，而站点交付异常的排查路径不固定。
+
+例如同样是“主设备安装延期”：
+
+- 如果物料状态异常，要补查供应商和到货记录。
+- 如果施工日志异常，要补查班组排班和现场阻塞。
+- 如果审批卡点异常，要补查审批流转和责任节点。
+- 如果质量返工异常，要补查验收记录和返工工单。
+
+所以这个任务需要 observation-driven decision，也就是 Agent loop。
+
+### 4.3 WorkflowState 设计
+
+```python
+@dataclass
+class WorkflowState:
+    run_id: str
+    abnormal_input: dict[str, object]
+    execution_plan: list[dict[str, object]]
+    tool_results: list[ToolResultRecord]
+    evidence_chain: list[EvidenceItem]
+    reflection_log: list[ReflectionDecision]
+    final_conclusion: dict[str, object] | None
+    bad_case_samples: list[dict[str, object]]
+    memory_records: list[dict[str, object]]
+    status: str
+```
+
+| 字段 | 作用 | 面试讲法 |
+| --- | --- | --- |
+| `run_id` | 标识一次运行 | 支持 trace、回放和问题定位 |
+| `abnormal_input` | 原始异常输入 | 防止任务漂移 |
+| `execution_plan` | 归因计划 | 让任务拆解可见 |
+| `tool_results` | 工具 observation | 保存事实来源 |
+| `evidence_chain` | 证据链 | 支撑结论可解释和可复核 |
+| `reflection_log` | 反思补查记录 | 记录为什么补查、补查了什么 |
+| `final_conclusion` | 最终结论 | 报告输出的结构化来源 |
+| `bad_case_samples` | 失败样本 | 支撑复盘和 eval 回归 |
+| `memory_records` | 长期记忆 | 保存复核后的归因模式 |
+| `status` | 运行状态 | 支持中断恢复和监控 |
+
+面试表达：
+
+> WorkflowState 是我项目里的长任务上下文容器。它不是简单 messages，而是把异常输入、执行计划、工具结果、证据链、反思决策和最终结论结构化承载，解决多轮执行中的上下文连续性、状态可恢复性和结论可复核问题。
+
+### 4.4 工具与权限设计
+
+| 工具 | 风险 | 说明 |
+| --- | --- | --- |
+| `query_delivery_plan` | 低 | 查询计划里程碑、延期天数 |
+| `query_material_status` | 低 | 查询物料到货、缺料情况 |
+| `query_ticket_system` | 低 | 查询阻塞工单和处理状态 |
+| `query_site_worklog` | 低 | 查询施工日志和现场资源 |
+| `query_quality_records` | 低 | 查询质量返工和验收记录 |
+| `query_cost_records` | 中 | 查询成本、人力和资源变化 |
+| `submit_attribution_report` | 高 | 提交正式归因结论 |
+| `notify_project_manager` | 高 | 发送通知 |
+| `close_ticket` | 高 | 关闭工单 |
+
+原则：
+
+- 只读工具可以自动执行。
+- 写入、提交、通知、关闭类工具必须人工确认。
+- 权限判断放在 Harness 的 PermissionGate，不依赖模型自觉。
+- 所有工具结果必须写入 `WorkflowState.tool_results`。
+
+### 4.5 证据链设计
+
+```python
+@dataclass(frozen=True)
+class EvidenceItem:
+    evidence_id: str
+    source_tool: str
+    raw_ref: str
+    claim: str
+    supports: str
+    confidence: float
+    conflict_with: list[str]
+```
+
+报告生成规则：
+
+- 每个结论必须绑定 evidence_id。
+- 报告只能引用 `WorkflowState.evidence_chain` 中存在的证据。
+- 证据不足时输出不确定性。
+- 证据冲突时降低置信度并触发补查或人工复核。
+
+面试表达：
+
+> 证据链是防止模型幻觉的关键。最终报告不是模型自由发挥，而是从 WorkflowState.evidence_chain 中抽取证据生成，每个结论都能追溯到来源工具和 raw_ref。
+
+### 4.6 Self-Reflection 补查设计
+
+```python
+@dataclass(frozen=True)
+class ReflectionDecision:
+    reason: str
+    decision: str
+    follow_up_calls: list[ToolCall]
+    requires_human_review: bool
+```
+
+触发条件：
+
+| 条件 | 处理 |
+| --- | --- |
+| 工具失败 | 记录 failure，必要时重试或换工具 |
+| 空结果 | 改查询条件或查其他来源 |
+| 证据不足 | 追加补查 tool call |
+| 证据冲突 | 降低置信度，查权威来源 |
+| 置信度低 | 继续补查或人工复核 |
+| 达到预算 | 停止并输出不确定结论 |
+
+面试表达：
+
+> Self-Reflection 不是泛泛“反思一下”，而是基于 WorkflowState 的结构化质量检查。它判断证据是否足够、是否冲突、工具是否失败、结论置信度是否达标，然后决定是否补查或转人工复核。
+
+### 4.7 Memory、Trace、Bad Case 的边界
+
+| 类型 | 生命周期 | 内容 | 用途 |
+| --- | --- | --- | --- |
+| Trace | 单次运行 | 每一步 action、observation、event | Debug 和复盘 |
+| Bad Case | 跨版本 | 错误输入、错误结论、失败原因 | 加入 eval，防止回归 |
+| Memory | 跨任务 | 复核后的归因模式和经验 | 后续类似异常复用 |
+
+面试表达：
+
+> Trace 记录单次运行过程，memory 保存跨任务可复用经验。长期记忆不能保存未验证猜测，否则会污染后续归因。bad case 要结构化记录并回流 eval。
+
+### 4.8 Eval 和上线验证
+
+评测指标：
+
+| 指标 | 意义 |
+| --- | --- |
+| root_cause_accuracy | 主因是否命中 |
+| evidence_coverage | 证据是否足够 |
+| citation_validity | 引用是否真实存在 |
+| reflection_precision | 是否在该补查时补查 |
+| tool_call_count | 成本和复杂度 |
+| latency | 用户等待时间 |
+| human_review_rate | 人工复核比例 |
+| bad_case_regression | 历史 bad case 是否复发 |
+
+面试表达：
+
+> 我们不能只看 demo，而要用固定 eval 集和 trace 分析版本效果。每次 prompt、工具或规则变更后，都要看归因命中率、证据覆盖率、bad case 回归和工具调用成本是否退化。
+
+### 4.9 业务成果怎么讲
+
+推荐表达：
+
+> 项目在两个重点项目完成初步落地验证并完成两个版本上线。通过自动巡检、证据聚合和报告生成，减少人工跨系统查证、重复沟通和问题定位时间，驱动试点项目交付成本降低 37.5%。这个数字是试点项目口径，后续仍需通过更多项目和固定 eval 指标持续验证泛化效果。
+
+## 5. 面试追问地图
+
+### 5.1 项目背景类
+
+Q：为什么要做异常巡检与归因 Agent？
+
+A：因为站点交付异常涉及多系统、多因素，人工巡检和根因排查效率低，证据链不清晰。Agent 可以自动规划排查路径、调用工具收集证据、补查缺失信息，并生成可复核报告。
+
+Q：为什么不用普通 workflow？
+
+A：Workflow 路径固定，而异常归因下一步依赖工具结果。不同异常会触发不同补查路径，所以更适合 Agent loop。
+
+### 5.2 Agent Loop 类
+
+Q：Agent loop 的关键是什么？
+
+A：关键是 observation-driven decision。每一轮工具结果都会影响下一步动作，证据不足就补查，证据冲突就降低置信度或转人工复核。
+
+Q：ToolCall 和 ToolResult 分别是什么？
+
+A：ToolCall 是模型或策略输出的结构化动作，包含工具名和参数；ToolResult 是工具执行后的 observation，包含成功失败和内容。
+
+### 5.3 Harness 类
+
+Q：Harness 的价值是什么？
+
+A：Harness 是模型外的工程运行层，负责工具注册、权限判断、状态管理、trace、预算、错误处理和恢复。模型提出动作，Harness 决定是否执行、怎么执行、怎么记录。
+
+Q：PermissionGate 为什么重要？
+
+A：因为高风险动作不能靠模型自觉约束。提交报告、关闭工单、发送通知、修改项目状态都必须通过权限门或人工确认。
+
+### 5.4 WorkflowState 类
+
+Q：为什么不用 messages 保存上下文？
+
+A：Messages 是对话历史，不适合稳定承载结构化字段。WorkflowState 有明确 schema，可以持久化、恢复、测试、回放和做报告来源校验。
+
+Q：WorkflowState 解决什么问题？
+
+A：解决长链路上下文丢失、工具结果散落、证据不可追溯、失败不可复盘的问题。
+
+### 5.5 证据链类
+
+Q：怎么保证结论不是模型胡编？
+
+A：最终报告只能引用 evidence_chain 中存在的证据。每个结论绑定 evidence_id、source_tool 和 raw_ref，缺证时触发补查或输出不确定性。
+
+Q：证据冲突怎么办？
+
+A：记录冲突来源，降低置信度，触发补查更权威数据源；仍冲突则转人工复核。
+
+### 5.6 Reflection 类
+
+Q：Self-Reflection 怎么实现？
+
+A：它是基于状态的结构化检查：检查工具失败、空结果、证据不足、证据冲突、置信度低等情况，然后生成 follow-up tool calls 或人工复核决策。
+
+### 5.7 Memory / Eval 类
+
+Q：Memory 和 trace 的区别是什么？
+
+A：Trace 记录单次运行，用于 debug 和复盘；memory 保存跨任务复用经验，例如复核后的归因模式。未验证猜测不应进入 memory。
+
+Q：怎么证明 Agent 变好了？
+
+A：用固定 eval 集、失败分类、trace 回放、工具调用次数、延迟、人工复核率、bad case 回归等指标，而不是只看一次 demo。
+
+## 6. 三个可背版本
+
+### 30 秒版本
+
+> 我做的是站点交付异常巡检与归因 Agent，解决人工发现异常慢、根因链路不清晰的问题。系统通过 Agent Loop 完成任务规划、工具调用、证据校验、Self-Reflection 补查和报告生成。我参与 Agent Harness 核心链路和 WorkflowState 设计，把异常输入、计划、工具结果、证据链、反思决策和最终结论统一管理，同时沉淀 trace、bad case 和归因记忆，支撑复盘、评测和记忆复用。
+
+### 1 分钟版本
+
+> 这个项目的核心不是让模型直接生成结论，而是搭建一个可控的 Agent Harness。异常输入进入系统后，Planner 生成归因检查计划，Tool Executor 调用计划、物料、工单、施工日志等工具，Evidence Checker 把工具结果转成证据链，Reflector 判断证据是否足够或冲突，不足时继续补查，最后 Reporter 生成带证据来源的归因报告。我重点参与 WorkflowState 上下文管理，把 abnormal input、execution plan、tool results、evidence chain、reflection log 和 final conclusion 统一承载，提升长链路任务的上下文连续性、可复盘性和稳定性。
+
+### 3 分钟版本
+
+> 站点交付异常归因是一个典型长路径复杂任务。异常可能来自计划、物料、施工、审批、质量或外部依赖，排查路径不是固定 workflow，而是要根据工具 observation 动态选择下一步。因此我们构建了异常巡检与归因 Agent。
+>
+> 系统主链路是 observe 异常输入，planner 拆解归因计划，executor 调用多个业务工具，evidence checker 结构化证据链，reflector 做证据充分性和冲突检查，如果缺证或冲突就生成补查动作，最后 reporter 生成可解释报告。这个过程对应 Stage 1 的 Agent loop、Stage 2 的证据和记忆、Stage 3 的 harness、Stage 4 的 review/reflection、Stage 7 的 eval 和 trace、Stage 8 的交付封装。
+>
+> 我参与的重点是 Agent Harness 核心链路和 WorkflowState。WorkflowState 统一承载异常输入、执行计划、工具结果、证据链、反思日志和最终结论，避免长任务中上下文丢失。工具结果不会直接拼报告，而是先进入 tool_results，再抽取 evidence item；最终报告只能引用 evidence_chain 中存在的证据。工具失败、证据不足、证据冲突会进入 reflection_log，并触发补查或人工复核。
+>
+> 同时，我们把执行记录、bad case 和经过复核的归因模式结构化沉淀，支撑后续任务复盘、故障诊断、eval 回归和记忆复用。两个重点项目试点和两个版本上线后，通过减少人工查证、缩短定位周期和降低重复沟通成本，驱动交付成本降低 37.5%。
+
+## 7. 完整原文附录
+
+下面完整保留两份原始文档正文，保证内容不丢失。日常阅读建议先看前面的融合主手册；需要查细节时再展开附录。
+
+
+<details>
+<summary>附录 A：Stage 1-8 代码组件精读与项目映射手册（原文完整保留）</summary>
 
 # Stage 1-8 代码组件精读与项目映射手册
 
@@ -2033,9 +2591,10 @@ A：这是试点项目口径，主要来自自动巡检、证据聚合和报告�
 `Ship`：让 agent 可运行、可复现、可测试、可观测、可交付。
 
 
----
+</details>
 
-# 第二部分：README 学习点逐项详解与项目面试手册
+<details>
+<summary>附录 B：README 学习点逐项详解与项目面试手册（原文完整保留）</summary>
 
 # README 学习点逐项详解与项目面试手册
 
@@ -3803,3 +4362,6 @@ A：
 15. README 的 Stage 0-8 如何映射到你的项目？
 
 如果这些问题你能结合本地代码和项目字段讲清楚，这个项目就能从“简历上的一句话”变成一套完整、可信、可追问的工程故事。
+
+
+</details>
